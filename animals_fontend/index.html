@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>XAMPP MySQL + Node.js</title>
+</head>
+<body>
+    <div id="animals-container"></div>
+    <button onclick="loadAnimals()">โหลดข้อมูลสัตว์</button>
+
+    <script>
+        // เรียก Node.js API
+        async function loadAnimals() {
+            try {
+                const response = await fetch('http://localhost:3000/api/animals');
+                const animals = await response.json();
+                console.log(animals)
+                const html = animals.data.map(animal => `
+                    <div style="border: 1px solid #ccc; margin: 10px; padding: 15px;">
+                        <h3>${animal.name}</h3>
+                        <p>${animal.species} - อายุ ${animal.age} ปี</p>
+                        <p>อาศัย: ${animal.habitat}</p>
+                    </div>
+                `).join('');
+                
+                document.getElementById('animals-container').innerHTML = html;
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // เพิ่มข้อมูลใหม่
+        async function addAnimal(name, species, age, habitat) {
+            try {
+                const response = await fetch('http://localhost:3000/add-animal', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, species, age, habitat })
+                });
+                
+                const result = await response.json();
+                console.log('เพิ่มข้อมูลสำเร็จ:', result);
+                loadAnimals(); // โหลดข้อมูลใหม่
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

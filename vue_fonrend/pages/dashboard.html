@@ -1,0 +1,634 @@
+<!-- 
+File: pages/dashboard.html
+Path: vue-user-management/pages/dashboard.html
+Description: หน้า Dashboard สำหรับผู้ใช้ทั่วไปและ Admin
+-->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - User Management</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Vue 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Axios -->
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div id="app">
+        <!-- Loading Screen -->
+        <div v-if="loading && !user" class="flex items-center justify-center min-h-screen">
+            <div class="text-center">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+                <p class="text-gray-600">กำลังโหลดข้อมูล...</p>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div v-if="user">
+            <!-- Header -->
+            <header class="bg-white shadow-sm border-b">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex justify-between items-center py-4">
+                        <div class="flex items-center space-x-4">
+                            <h1 class="text-2xl font-bold text-gray-900">
+                                <i class="fas fa-users mr-2 text-blue-500"></i>
+                                User Management
+                            </h1>
+                            <span v-if="user.role === 'admin'" class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium">
+                                <i class="fas fa-crown mr-1"></i>Admin
+                            </span>
+                        </div>
+                        
+                        <div class="flex items-center space-x-4">
+                            <div class="text-right">
+                                <p class="text-sm font-medium text-gray-900">{{ user.full_name }}</p>
+                                <p class="text-xs text-gray-500">@{{ user.username }}</p>
+                            </div>
+                            <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                                {{ user.full_name.charAt(0) }}
+                            </div>
+                            <button 
+                                @click="logout"
+                                class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                            >
+                                <i class="fas fa-sign-out-alt mr-1"></i>
+                                ออกจากระบบ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Navigation Tabs -->
+            <nav class="bg-white border-b">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex space-x-8">
+                        <button 
+                            @click="activeTab = 'profile'"
+                            :class="activeTab === 'profile' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                            class="py-4 px-1 border-b-2 font-medium text-sm transition-colors"
+                        >
+                            <i class="fas fa-user mr-2"></i>
+                            โปรไฟล์ของฉัน
+                        </button>
+                        <button 
+                            v-if="user.role === 'admin'"
+                            @click="activeTab = 'users'; loadUsers()"
+                            :class="activeTab === 'users' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                            class="py-4 px-1 border-b-2 font-medium text-sm transition-colors"
+                        >
+                            <i class="fas fa-users-cog mr-2"></i>
+                            จัดการผู้ใช้
+                        </button>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Main Content Area -->
+            <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                <!-- Profile Tab -->
+                <div v-if="activeTab === 'profile'" class="space-y-6">
+                    <!-- Profile Card -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-xl font-semibold text-gray-900">
+                                <i class="fas fa-user-circle mr-2 text-blue-500"></i>
+                                ข้อมูลส่วนตัว
+                            </h2>
+                            <button 
+                                @click="editingProfile = !editingProfile"
+                                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                            >
+                                <i class="fas fa-edit mr-1"></i>
+                                {{ editingProfile ? 'ยกเลิก' : 'แก้ไขข้อมูล' }}
+                            </button>
+                        </div>
+
+                        <div v-if="!editingProfile" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                                <p class="text-gray-900 bg-gray-50 px-3 py-2 rounded border">{{ user.username }}</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <p class="text-gray-900 bg-gray-50 px-3 py-2 rounded border">{{ user.email }}</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล</label>
+                                <p class="text-gray-900 bg-gray-50 px-3 py-2 rounded border">{{ user.full_name }}</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">บทบาท</label>
+                                <span :class="user.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'" 
+                                      class="inline-block px-3 py-1 rounded-full text-sm font-medium">
+                                    {{ user.role === 'admin' ? 'ผู้ดูแลระบบ' : 'ผู้ใช้ทั่วไป' }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Edit Profile Form -->
+                        <form v-if="editingProfile" @submit.prevent="updateProfile" class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                                    <input 
+                                        v-model="profileForm.username" 
+                                        type="text" 
+                                        required
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                    <input 
+                                        v-model="profileForm.email" 
+                                        type="email" 
+                                        required
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล</label>
+                                    <input 
+                                        v-model="profileForm.full_name" 
+                                        type="text" 
+                                        required
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่านใหม่ (ไม่บังคับ)</label>
+                                    <input 
+                                        v-model="profileForm.newPassword" 
+                                        type="password" 
+                                        minlength="6"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="ปล่อยว่างหากไม่ต้องการเปลี่ยน"
+                                    >
+                                </div>
+                            </div>
+                            <div class="flex space-x-4">
+                                <button 
+                                    type="submit" 
+                                    :disabled="loading"
+                                    class="bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg transition-colors"
+                                >
+                                    <i v-if="loading" class="fas fa-spinner fa-spin mr-1"></i>
+                                    <i v-else class="fas fa-save mr-1"></i>
+                                    {{ loading ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง' }}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                            <i class="fas fa-chart-bar mr-2 text-green-500"></i>
+                            สถิติระบบ
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-blue-50 p-4 rounded-lg">
+                                <div class="flex items-center">
+                                    <i class="fas fa-users text-blue-500 text-2xl mr-3"></i>
+                                    <div>
+                                        <p class="text-sm text-gray-600">ผู้ใช้ทั้งหมด</p>
+                                        <p class="text-xl font-bold text-blue-600">{{ stats.totalUsers || '-' }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-green-50 p-4 rounded-lg">
+                                <div class="flex items-center">
+                                    <i class="fas fa-user-check text-green-500 text-2xl mr-3"></i>
+                                    <div>
+                                        <p class="text-sm text-gray-600">ผู้ใช้ที่ Active</p>
+                                        <p class="text-xl font-bold text-green-600">{{ stats.activeUsers || '-' }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-red-50 p-4 rounded-lg">
+                                <div class="flex items-center">
+                                    <i class="fas fa-crown text-red-500 text-2xl mr-3"></i>
+                                    <div>
+                                        <p class="text-sm text-gray-600">ผู้ดูแลระบบ</p>
+                                        <p class="text-xl font-bold text-red-600">{{ stats.adminUsers || '-' }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Users Management Tab (Admin Only) -->
+                <div v-if="activeTab === 'users' && user.role === 'admin'">
+                    <div class="bg-white rounded-lg shadow">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <div class="flex justify-between items-center">
+                                <h2 class="text-xl font-semibold text-gray-900">
+                                    <i class="fas fa-users-cog mr-2 text-blue-500"></i>
+                                    จัดการผู้ใช้ทั้งหมด
+                                </h2>
+                                <button 
+                                    @click="loadUsers"
+                                    :disabled="loading"
+                                    class="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                                >
+                                    <i class="fas fa-sync-alt mr-1" :class="{ 'fa-spin': loading }"></i>
+                                    รีเฟรช
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อ-นามสกุล</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr v-for="userItem in users" :key="userItem.id" class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ userItem.id }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ userItem.username }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ userItem.full_name }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ userItem.email }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span :class="userItem.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'" 
+                                                  class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full">
+                                                {{ userItem.role === 'admin' ? 'Admin' : 'User' }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span :class="userItem.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'" 
+                                                  class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full">
+                                                {{ userItem.is_active ? 'Active' : 'Inactive' }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <div class="flex space-x-2">
+                                                <button 
+                                                    @click="editUser(userItem)"
+                                                    class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-xs transition-colors"
+                                                    title="แก้ไข"
+                                                >
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button 
+                                                    @click="deleteUser(userItem)"
+                                                    :disabled="userItem.id === user.id"
+                                                    class="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white px-3 py-1 rounded text-xs transition-colors"
+                                                    title="ลบ"
+                                                >
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div v-if="users.length === 0" class="text-center py-8 text-gray-500">
+                            <i class="fas fa-users text-4xl mb-2"></i>
+                            <p>ไม่มีข้อมูลผู้ใช้</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Edit User Modal -->
+        <div v-if="editingUser" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-lg p-6 w-full max-w-md">
+                <h3 class="text-lg font-bold mb-4">แก้ไขข้อมูลผู้ใช้</h3>
+                <form @submit.prevent="updateUser">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                            <input 
+                                v-model="editUserForm.username" 
+                                type="text" 
+                                required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input 
+                                v-model="editUserForm.email" 
+                                type="email" 
+                                required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล</label>
+                            <input 
+                                v-model="editUserForm.full_name" 
+                                type="text" 
+                                required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                            <select 
+                                v-model="editUserForm.role" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="flex items-center">
+                                <input 
+                                    v-model="editUserForm.is_active" 
+                                    type="checkbox" 
+                                    class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                >
+                                <span class="text-sm font-medium text-gray-700">Active</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="flex space-x-4 mt-6">
+                        <button 
+                            type="submit" 
+                            :disabled="loading"
+                            class="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white py-2 px-4 rounded-lg transition-colors"
+                        >
+                            <i v-if="loading" class="fas fa-spinner fa-spin mr-1"></i>
+                            {{ loading ? 'กำลังบันทึก...' : 'บันทึก' }}
+                        </button>
+                        <button 
+                            type="button" 
+                            @click="cancelEdit"
+                            class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors"
+                        >
+                            ยกเลิก
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load API functions -->
+    <script src="../js/api.js"></script>
+    
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    user: null,
+                    loading: true,
+                    activeTab: 'profile',
+                    editingProfile: false,
+                    editingUser: null,
+                    
+                    profileForm: {
+                        username: '',
+                        email: '',
+                        full_name: '',
+                        newPassword: ''
+                    },
+                    
+                    editUserForm: {
+                        id: null,
+                        username: '',
+                        email: '',
+                        full_name: '',
+                        role: 'user',
+                        is_active: true
+                    },
+                    
+                    users: [],
+                    stats: {
+                        totalUsers: 0,
+                        activeUsers: 0,
+                        adminUsers: 0
+                    }
+                }
+            },
+            
+            async mounted() {
+                await this.loadUserProfile();
+            },
+            
+            methods: {
+                async loadUserProfile() {
+                    this.loading = true;
+                    
+                    try {
+                        const result = await window.api.verifyToken();
+                        
+                        if (result.success) {
+                            this.user = result.data.data.user;
+                            this.setupProfileForm();
+                            
+                            // Load stats if admin
+                            if (this.user.role === 'admin') {
+                                await this.loadStats();
+                            }
+                        } else {
+                            window.location.href = 'login.html';
+                        }
+                    } catch (error) {
+                        window.location.href = 'login.html';
+                    }
+                    
+                    this.loading = false;
+                },
+                
+                setupProfileForm() {
+                    this.profileForm = {
+                        username: this.user.username,
+                        email: this.user.email,
+                        full_name: this.user.full_name,
+                        newPassword: ''
+                    };
+                },
+                
+                async updateProfile() {
+                    this.loading = true;
+                    
+                    try {
+                        // Update profile
+                        const profileResult = await window.api.updateMyProfile({
+                            username: this.profileForm.username,
+                            email: this.profileForm.email,
+                            full_name: this.profileForm.full_name
+                        });
+                        
+                        if (profileResult.success) {
+                            // Update password if provided
+                            if (this.profileForm.newPassword) {
+                                const passwordResult = await window.api.changePassword(
+                                    this.user.id, 
+                                    this.profileForm.newPassword
+                                );
+                                
+                                if (!passwordResult.success) {
+                                    window.ApiHelpers.showNotification(passwordResult.message, 'error');
+                                    this.loading = false;
+                                    return;
+                                }
+                            }
+                            
+                            // Update user data
+                            this.user = profileResult.data.data;
+                            this.setupProfileForm();
+                            this.editingProfile = false;
+                            
+                            window.ApiHelpers.showNotification('บันทึกข้อมูลสำเร็จ!');
+                        } else {
+                            window.ApiHelpers.showNotification(profileResult.message, 'error');
+                        }
+                    } catch (error) {
+                        window.ApiHelpers.showNotification('เกิดข้อผิดพลาด', 'error');
+                    }
+                    
+                    this.loading = false;
+                },
+                
+                async loadUsers() {
+                    this.loading = true;
+                    
+                    try {
+                        const result = await window.api.getAllUsers();
+                        
+                        if (result.success) {
+                            this.users = result.data.data;
+                            this.calculateStats();
+                        } else {
+                            window.ApiHelpers.showNotification(result.message, 'error');
+                        }
+                    } catch (error) {
+                        window.ApiHelpers.showNotification('เกิดข้อผิดพลาด', 'error');
+                    }
+                    
+                    this.loading = false;
+                },
+                
+                async loadStats() {
+                    try {
+                        const result = await window.api.getAllUsers();
+                        
+                        if (result.success) {
+                            const users = result.data.data;
+                            this.stats = {
+                                totalUsers: users.length,
+                                activeUsers: users.filter(u => u.is_active).length,
+                                adminUsers: users.filter(u => u.role === 'admin').length
+                            };
+                        }
+                    } catch (error) {
+                        console.error('Load stats error:', error);
+                    }
+                },
+                
+                calculateStats() {
+                    this.stats = {
+                        totalUsers: this.users.length,
+                        activeUsers: this.users.filter(u => u.is_active).length,
+                        adminUsers: this.users.filter(u => u.role === 'admin').length
+                    };
+                },
+                
+                editUser(userItem) {
+                    this.editUserForm = {
+                        id: userItem.id,
+                        username: userItem.username,
+                        email: userItem.email,
+                        full_name: userItem.full_name,
+                        role: userItem.role,
+                        is_active: userItem.is_active
+                    };
+                    this.editingUser = userItem;
+                },
+                
+                async updateUser() {
+                    this.loading = true;
+                    
+                    try {
+                        const result = await window.api.updateUser(this.editUserForm.id, {
+                            username: this.editUserForm.username,
+                            email: this.editUserForm.email,
+                            full_name: this.editUserForm.full_name,
+                            role: this.editUserForm.role,
+                            is_active: this.editUserForm.is_active
+                        });
+                        
+                        if (result.success) {
+                            window.ApiHelpers.showNotification('อัพเดทข้อมูลสำเร็จ!');
+                            this.cancelEdit();
+                            await this.loadUsers();
+                        } else {
+                            window.ApiHelpers.showNotification(result.message, 'error');
+                        }
+                    } catch (error) {
+                        window.ApiHelpers.showNotification('เกิดข้อผิดพลาด', 'error');
+                    }
+                    
+                    this.loading = false;
+                },
+                
+                async deleteUser(userItem) {
+                    if (userItem.id === this.user.id) {
+                        window.ApiHelpers.showNotification('ไม่สามารถลบตัวเองได้', 'error');
+                        return;
+                    }
+                    
+                    const confirmed = await window.ApiHelpers.confirmDelete(
+                        `คุณต้องการลบผู้ใช้ "${userItem.username}" หรือไม่?`
+                    );
+                    
+                    if (!confirmed) return;
+                    
+                    try {
+                        const result = await window.api.deleteUser(userItem.id);
+                        
+                        if (result.success) {
+                            window.ApiHelpers.showNotification('ลบผู้ใช้สำเร็จ!');
+                            await this.loadUsers();
+                        } else {
+                            window.ApiHelpers.showNotification(result.message, 'error');
+                        }
+                    } catch (error) {
+                        window.ApiHelpers.showNotification('เกิดข้อผิดพลาด', 'error');
+                    }
+                },
+                
+                cancelEdit() {
+                    this.editingUser = null;
+                    this.editUserForm = {
+                        id: null,
+                        username: '',
+                        email: '',
+                        full_name: '',
+                        role: 'user',
+                        is_active: true
+                    };
+                },
+                
+                logout() {
+                    window.ApiHelpers.logout();
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

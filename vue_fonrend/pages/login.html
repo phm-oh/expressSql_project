@@ -1,0 +1,284 @@
+<!-- 
+File: pages/login.html
+Path: vue-user-management/pages/login.html
+Description: หน้า Login และ Register
+-->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เข้าสู่ระบบ - User Management</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Vue 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Axios -->
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-500 to-purple-600 min-h-screen">
+    <div id="app">
+        <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-md w-full space-y-8">
+                <!-- Header -->
+                <div class="text-center">
+                    <h1 class="text-white text-3xl font-bold mb-2">
+                        <i class="fas fa-users mr-3"></i>
+                        User Management System
+                    </h1>
+                    <p class="text-blue-100">ระบบจัดการผู้ใช้งาน</p>
+                </div>
+
+                <!-- Form Container -->
+                <div class="bg-white rounded-xl shadow-2xl p-8">
+                    <!-- Tab Buttons -->
+                    <div class="flex rounded-lg overflow-hidden mb-6">
+                        <button 
+                            @click="currentTab = 'login'" 
+                            :class="currentTab === 'login' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'"
+                            class="flex-1 py-3 px-4 font-medium transition-all duration-200 hover:bg-blue-400 hover:text-white"
+                        >
+                            <i class="fas fa-sign-in-alt mr-2"></i>
+                            เข้าสู่ระบบ
+                        </button>
+                        <button 
+                            @click="currentTab = 'register'" 
+                            :class="currentTab === 'register' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-700'"
+                            class="flex-1 py-3 px-4 font-medium transition-all duration-200 hover:bg-green-400 hover:text-white"
+                        >
+                            <i class="fas fa-user-plus mr-2"></i>
+                            สมัครสมาชิก
+                        </button>
+                    </div>
+
+                    <!-- Login Form -->
+                    <form v-if="currentTab === 'login'" @submit.prevent="login">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-gray-700 text-sm font-medium mb-2">
+                                    <i class="fas fa-user mr-1 text-gray-400"></i>
+                                    Username
+                                </label>
+                                <input 
+                                    v-model="loginForm.username" 
+                                    type="text" 
+                                    required
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                    placeholder="ใส่ username ของคุณ"
+                                >
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 text-sm font-medium mb-2">
+                                    <i class="fas fa-lock mr-1 text-gray-400"></i>
+                                    Password
+                                </label>
+                                <input 
+                                    v-model="loginForm.password" 
+                                    type="password" 
+                                    required
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                    placeholder="ใส่รหัสผ่านของคุณ"
+                                >
+                            </div>
+                            <button 
+                                type="submit" 
+                                :disabled="loading"
+                                class="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 disabled:transform-none"
+                            >
+                                <i v-if="loading" class="fas fa-spinner fa-spin mr-2"></i>
+                                <i v-else class="fas fa-sign-in-alt mr-2"></i>
+                                {{ loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ' }}
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Register Form -->
+                    <form v-if="currentTab === 'register'" @submit.prevent="register">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-gray-700 text-sm font-medium mb-2">
+                                    <i class="fas fa-user mr-1 text-gray-400"></i>
+                                    Username
+                                </label>
+                                <input 
+                                    v-model="registerForm.username" 
+                                    type="text" 
+                                    required
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                                    placeholder="เลือก username"
+                                >
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 text-sm font-medium mb-2">
+                                    <i class="fas fa-envelope mr-1 text-gray-400"></i>
+                                    Email
+                                </label>
+                                <input 
+                                    v-model="registerForm.email" 
+                                    type="email" 
+                                    required
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                                    placeholder="ใส่อีเมลของคุณ"
+                                >
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 text-sm font-medium mb-2">
+                                    <i class="fas fa-id-card mr-1 text-gray-400"></i>
+                                    ชื่อ-นามสกุล
+                                </label>
+                                <input 
+                                    v-model="registerForm.full_name" 
+                                    type="text" 
+                                    required
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                                    placeholder="ใส่ชื่อ-นามสกุลของคุณ"
+                                >
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 text-sm font-medium mb-2">
+                                    <i class="fas fa-lock mr-1 text-gray-400"></i>
+                                    Password
+                                </label>
+                                <input 
+                                    v-model="registerForm.password" 
+                                    type="password" 
+                                    required
+                                    minlength="6"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                                    placeholder="รหัสผ่านอย่างน้อย 6 ตัวอักษร"
+                                >
+                            </div>
+                            <button 
+                                type="submit" 
+                                :disabled="loading"
+                                class="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 disabled:transform-none"
+                            >
+                                <i v-if="loading" class="fas fa-spinner fa-spin mr-2"></i>
+                                <i v-else class="fas fa-user-plus mr-2"></i>
+                                {{ loading ? 'กำลังสมัครสมาชิก...' : 'สมัครสมาชิก' }}
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Test Accounts Info -->
+                    <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <h3 class="font-medium text-blue-800 mb-2 text-sm">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            ข้อมูลสำหรับทดสอบ:
+                        </h3>
+                        <div class="text-xs text-blue-600 space-y-1">
+                            <p><strong>Admin:</strong> admin1 / 123456</p>
+                            <p><strong>User:</strong> testuser / 123456</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="text-center text-blue-100 text-sm">
+                    <p>&copy; 2025 User Management System</p>
+                    <p>สำหรับการแข่งขันเขียนโปรแกรม</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load API functions -->
+    <script src="../js/api.js"></script>
+    
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    currentTab: 'login',
+                    loading: false,
+                    
+                    loginForm: {
+                        username: '',
+                        password: ''
+                    },
+                    
+                    registerForm: {
+                        username: '',
+                        email: '',
+                        password: '',
+                        full_name: ''
+                    }
+                }
+            },
+            
+            mounted() {
+                // ตรวจสอบว่าเข้าสู่ระบบแล้วหรือไม่
+                const token = localStorage.getItem('token');
+                if (token) {
+                    window.location.href = 'dashboard.html';
+                }
+            },
+            
+            methods: {
+                async login() {
+                    this.loading = true;
+                    
+                    try {
+                        const result = await window.api.login(
+                            this.loginForm.username, 
+                            this.loginForm.password
+                        );
+                        
+                        if (result.success) {
+                            // Save token
+                            window.api.setToken(result.data.data.token);
+                            
+                            // Show success message
+                            window.ApiHelpers.showNotification('เข้าสู่ระบบสำเร็จ!');
+                            
+                            // Redirect to dashboard
+                            setTimeout(() => {
+                                window.location.href = 'dashboard.html';
+                            }, 1000);
+                        } else {
+                            window.ApiHelpers.showNotification(result.message, 'error');
+                        }
+                    } catch (error) {
+                        window.ApiHelpers.showNotification('เกิดข้อผิดพลาด', 'error');
+                        console.error('Login error:', error);
+                    }
+                    
+                    this.loading = false;
+                },
+                
+                async register() {
+                    this.loading = true;
+                    
+                    try {
+                        const result = await window.api.register(this.registerForm);
+                        
+                        if (result.success) {
+                            window.ApiHelpers.showNotification('สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ');
+                            
+                            // Switch to login tab and clear forms
+                            this.currentTab = 'login';
+                            this.resetForms();
+                        } else {
+                            window.ApiHelpers.showNotification(result.message, 'error');
+                        }
+                    } catch (error) {
+                        window.ApiHelpers.showNotification('เกิดข้อผิดพลาด', 'error');
+                        console.error('Register error:', error);
+                    }
+                    
+                    this.loading = false;
+                },
+                
+                resetForms() {
+                    this.loginForm = { username: '', password: '' };
+                    this.registerForm = { username: '', email: '', password: '', full_name: '' };
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

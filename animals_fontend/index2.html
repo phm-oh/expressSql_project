@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>XAMPP MySQL + Node.js</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .animal-card {
+            border: 1px solid #ddd;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+        .animal-card h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .animal-card p {
+            margin: 5px 0;
+            color: #666;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .error {
+            color: red;
+            padding: 10px;
+            background-color: #ffebee;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            color: green;
+            padding: 10px;
+            background-color: #e8f5e8;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐾 Zoo Animals Management</h1>
+        
+        <div id="message"></div>
+        
+        <button onclick="loadAnimals()">🔄 โหลดข้อมูลสัตว์</button>
+        <button onclick="testAPI()">🧪 ทดสอบ API</button>
+        
+        <div id="animals-container"></div>
+    </div>
+
+    <script>
+        // ฟังก์ชันแสดงข้อความ
+        function showMessage(message, type = 'info') {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="${type}">${message}</div>`;
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 3000);
+        }
+
+        // ฟังก์ชันทดสอบ API
+        async function testAPI() {
+            try {
+                showMessage('🔌 กำลังทดสอบการเชื่อมต่อ API...', 'loading');
+                
+                const response = await fetch('http://localhost:3000/api/animals');
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('API Response:', data);
+                
+                showMessage(`✅ API ใช้งานได้! พบข้อมูล ${data.count} รายการ`, 'success');
+                
+            } catch (error) {
+                console.error('API Test Error:', error);
+                showMessage(`❌ ไม่สามารถเชื่อมต่อ API ได้: ${error.message}`, 'error');
+            }
+        }
+
+        // เรียก Node.js API
+        async function loadAnimals() {
+            try {
+                showMessage('🔄 กำลังโหลดข้อมูลสัตว์...', 'loading');
+                
+                const response = await fetch('http://localhost:3000/api/animals');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const responseData = await response.json();
+                console.log('Full API Response:', responseData);
+                
+                // ✅ แก้ไขตรงนี้: ดึงข้อมูลจาก responseData.data
+                const animals = responseData.data;
+                
+                if (!animals || animals.length === 0) {
+                    document.getElementById('animals-container').innerHTML = 
+                        '<p>ไม่พบข้อมูลสัตว์</p>';
+                    showMessage('⚠️ ไม่พบข้อมูลสัตว์', 'error');
+                    return;
+                }
+                
+                // สร้าง HTML แสดงข้อมูล
+                const html = animals.map(animal => `
+                    <div class="animal-card">
+                        <h3>🦁 ${animal.name}</h3>
+                        <p><strong>สายพันธุ์:</strong> ${animal.species}</p>
+                        <p><strong>อายุ:</strong> ${animal.age} ปี</p>
+                        <p><strong>ที่อยู่อาศัย:</strong> ${animal.habitat || 'ไม่ระบุ'}</p>
+                        <p><strong>น้ำหนัก:</strong> ${animal.weight ? animal.weight + ' กก.' : 'ไม่ระบุ'}</p>
+                        <p><strong>สถานะ:</strong> 
+                            ${animal.is_endangered ? 
+                                '<span style="color: red;">ใกล้สูญพันธุ์</span>' : 
+                                '<span style="color: green;">ปลอดภัย</span>'}
+                        </p>
+                        <p><strong>เพิ่มเมื่อ:</strong> ${new Date(animal.created_at).toLocaleDateString('th-TH')}</p>
+                    </div>
+                `).join('');
+                
+                document.getElementById('animals-container').innerHTML = html;
+                showMessage(`✅ โหลดข้อมูลสำเร็จ: ${animals.length} รายการ`, 'success');
+                
+            } catch (error) {
+                console.error('Load Animals Error:', error);
+                showMessage(`❌ ไม่สามารถโหลดข้อมูลได้: ${error.message}`, 'error');
+                
+                // แสดงข้อมูลช่วยแก้ปัญหา
+                document.getElementById('animals-container').innerHTML = `
+                    <div class="error">
+                        <h3>❌ เกิดข้อผิดพลาด</h3>
+                        <p><strong>รายละเอียด:</strong> ${error.message}</p>
+                        <p><strong>วิธีแก้ไข:</strong></p>
+                        <ul>
+                            <li>ตรวจสอบว่า Backend Server รันที่ localhost:3000</li>
+                            <li>ตรวจสอบว่า Database เชื่อมต่อได้</li>
+                            <li>ลองเปิด <a href="http://localhost:3000/api/animals" target="_blank">http://localhost:3000/api/animals</a> ใน browser</li>
+                        </ul>
+                    </div>
+                `;
+            }
+        }
+
+        // ✅ แก้ไข addAnimal function
+        async function addAnimal(name, species, age, habitat) {
+            try {
+                showMessage('➕ กำลังเพิ่มข้อมูลสัตว์...', 'loading');
+                
+                const response = await fetch('http://localhost:3000/api/animals', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, species, age, habitat })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                console.log('เพิ่มข้อมูลสำเร็จ:', result);
+                
+                showMessage('✅ เพิ่มข้อมูลสำเร็จ!', 'success');
+                loadAnimals(); // โหลดข้อมูลใหม่
+                
+            } catch (error) {
+                console.error('Add Animal Error:', error);
+                showMessage(`❌ เพิ่มข้อมูลไม่สำเร็จ: ${error.message}`, 'error');
+            }
+        }
+
+        // เรียกใช้ทันทีเมื่อโหลดหน้า
+        window.onload = function() {
+            console.log('🚀 หน้าเว็บโหลดเสร็จ');
+            testAPI(); // ทดสอบ API ก่อน
+        };
+    </script>
+</body>
+</html>
